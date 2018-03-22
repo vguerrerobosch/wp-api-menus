@@ -71,14 +71,14 @@ if ( ! class_exists( 'WP_REST_Menus' ) ) :
                 )
             ) );
 
-            register_rest_route( self::get_plugin_namespace(), '/menu-locations', array(
+            register_rest_route( self::get_plugin_namespace(), '/locations', array(
                 array(
                     'methods'  => WP_REST_Server::READABLE,
                     'callback' => array( $this, 'get_menu_locations' ),
                 )
             ) );
 
-            register_rest_route( self::get_plugin_namespace(), '/menu-locations/(?P<location>[a-zA-Z0-9_-]+)', array(
+            register_rest_route( self::get_plugin_namespace(), '/locations/(?P<location>[a-zA-Z0-9_-]+)', array(
                 array(
                     'methods'  => WP_REST_Server::READABLE,
                     'callback' => array( $this, 'get_menu_location' ),
@@ -93,29 +93,15 @@ if ( ! class_exists( 'WP_REST_Menus' ) ) :
          * @since  1.2.0
          * @return array All registered menus
          */
-        public static function get_menus() {
+        public function get_menus() {
 
             $rest_url = trailingslashit( get_rest_url() . self::get_plugin_namespace() . '/menus/' );
             $wp_menus = wp_get_nav_menus();
 
-            $i = 0;
             $rest_menus = array();
-            foreach ( $wp_menus as $wp_menu ) :
 
-                $menu = (array) $wp_menu;
-
-                $rest_menus[ $i ]                = $menu;
-                $rest_menus[ $i ]['ID']          = $menu['term_id'];
-                $rest_menus[ $i ]['name']        = $menu['name'];
-                $rest_menus[ $i ]['slug']        = $menu['slug'];
-                $rest_menus[ $i ]['description'] = $menu['description'];
-                $rest_menus[ $i ]['count']       = $menu['count'];
-
-                $rest_menus[ $i ]['meta']['links']['collection'] = $rest_url;
-                $rest_menus[ $i ]['meta']['links']['self']       = $rest_url . $menu['term_id'];
-
-                $i ++;
-            endforeach;
+            foreach ( $wp_menus as $wp_menu )
+                $rest_menus[] = $this->get_menu( array( 'id' => $wp_menu->term_id ) );
 
             return apply_filters( 'rest_menus_format_menus', $rest_menus );
         }
@@ -140,10 +126,9 @@ if ( ! class_exists( 'WP_REST_Menus' ) ) :
             if ( $wp_menu_object ) :
 
                 $menu = (array) $wp_menu_object;
-                $rest_menu['ID']          = abs( $menu['term_id'] );
+                $rest_menu['id']          = abs( $menu['term_id'] );
                 $rest_menu['name']        = $menu['name'];
                 $rest_menu['slug']        = $menu['slug'];
-                $rest_menu['description'] = $menu['description'];
                 $rest_menu['count']       = abs( $menu['count'] );
 
                 $rest_menu_items = array();
@@ -154,8 +139,15 @@ if ( ! class_exists( 'WP_REST_Menus' ) ) :
                 $rest_menu_items = $this->nested_menu_items($rest_menu_items, 0);
 
                 $rest_menu['items']                       = $rest_menu_items;
-                $rest_menu['meta']['links']['collection'] = $rest_url;
-                $rest_menu['meta']['links']['self']       = $rest_url . $id;
+
+                $rest_menu['_links'] = array(
+            			'self' => array(
+            				'href'   => $rest_url . $id,
+            			),
+            			'collection' => array(
+            				'href'   => $rest_url,
+            			),
+            		);
 
             endif;
 
@@ -225,7 +217,7 @@ if ( ! class_exists( 'WP_REST_Menus' ) ) :
 
             $locations        = get_nav_menu_locations();
             $registered_menus = get_registered_nav_menus();
-	          $rest_url         = get_rest_url() . self::get_plugin_namespace() . '/menu-locations/';
+	          $rest_url         = get_rest_url() . self::get_plugin_namespace() . '/locations/';
             $rest_menus       = array();
 
             if ( $locations && $registered_menus ) :
@@ -237,10 +229,13 @@ if ( ! class_exists( 'WP_REST_Menus' ) ) :
 		                continue;
 	                }
 
-	                $rest_menus[ $slug ]['ID']                          = $locations[ $slug ];
-                    $rest_menus[ $slug ]['label']                       = $label;
-                    $rest_menus[ $slug ]['meta']['links']['collection'] = $rest_url;
-                    $rest_menus[ $slug ]['meta']['links']['self']       = $rest_url . $slug;
+                  $rest_menu = &$rest_menus[];
+
+                  $rest_menu['slug']                        = $slug;
+                  $rest_menu['label']                       = $label;
+                  $rest_menu['id']                          = $locations[ $slug ];
+                  $rest_menu['meta']['links']['collection'] = $rest_url;
+                  $rest_menu['meta']['links']['self']       = $rest_url . $slug;
 
                 endforeach;
 
@@ -262,10 +257,22 @@ if ( ! class_exists( 'WP_REST_Menus' ) ) :
             $params     = $request->get_params();
             $location   = $params['location'];
             $locations  = get_nav_menu_locations();
+            $registered_menus = get_registered_nav_menus();
 
             if ( ! isset( $locations[ $location ] ) ) {
 	            return array();
             }
+
+            $rest_url = get_rest_url() . self::get_plugin_namespace() . '/locations/';
+
+            $menu_location = array();
+            $menu_location['slug']                        = $location;
+            $menu_location['label']                       = $registered_menus[$location];
+            $menu_location['id']                          = $locations[$location];
+            $menu_location['meta']['links']['collection'] = $rest_url;
+            $menu_location['meta']['links']['self']       = $rest_url . $location;
+
+            return $menu_location;
 
             $wp_menu = wp_get_nav_menu_object( $locations[ $location ] );
             $menu_items = wp_get_nav_menu_items( $wp_menu->term_id );

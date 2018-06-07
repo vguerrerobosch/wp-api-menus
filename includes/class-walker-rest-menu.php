@@ -37,6 +37,7 @@ class WalkerRestMenu extends \Walker
             'parent'      => abs($item['menu_item_parent']),
             'title'       => $item['title'],
             'url'         => $item['url'],
+            'path'        => filter_var($item['url'], FILTER_VALIDATE_URL) ? wp_parse_url($item['url'], PHP_URL_PATH) : $item['url'],
             'attr'        => $item['attr_title'],
             'target'      => $item['target'],
             'classes'     => implode(' ', $item['classes']),

@@ -48,6 +48,7 @@ class WalkerRestMenu extends \Walker
             'object_slug' => get_post($item['object_id'])->post_name,
             'type'        => $item['type'],
             'type_label'  => $item['type_label'],
+            'acf'         => get_fields($item['ID']),
         );
 
         $output[] = $menu_item;

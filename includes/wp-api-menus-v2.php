@@ -98,7 +98,7 @@ if (! class_exists('WP_REST_Menus')) :
         public function get_menus()
         {
             $rest_url = trailingslashit(get_rest_url() . self::get_plugin_namespace() . '/menus/');
-            $wp_menus = wp_get_nav_menus();
+            $wp_menus = array_unique(wp_get_nav_menus(), SORT_REGULAR);
 
             $rest_menus = array();
 
@@ -132,6 +132,12 @@ if (! class_exists('WP_REST_Menus')) :
                 $rest_menu['name']        = $menu['name'];
                 $rest_menu['slug']        = $menu['slug'];
                 $rest_menu['count']       = abs($menu['count']);
+                $rest_menu['location']    = array_search($id, get_nav_menu_locations()) ?: null;
+
+                $rest_menu['language_code'] = apply_filters( 'wpml_element_language_code', null, [
+                	'element_id' => $menu['term_taxonomy_id'],
+                	'element_type' => 'nav_menu',
+                ] );
 
                 $rest_menu['items'] = call_user_func_array(array( new WalkerRestMenu(), 'walk' ), array($wp_menu_items, 0));
 

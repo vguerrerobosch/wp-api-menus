@@ -126,14 +126,18 @@ if (! class_exists('WP_REST_Menus')) :
 
             $rest_menu = array();
 
+            $nav_menu_locations = get_nav_menu_locations();
+            $nav_menu_locations = array_map(function($id) {
+            	return apply_filters( 'wpml_object_id', $id, 'nav_menu', true );
+            }, $nav_menu_locations);
+
             if ($wp_menu_object) {
                 $menu = (array) $wp_menu_object;
                 $rest_menu['id']          = abs($menu['term_id']);
                 $rest_menu['name']        = $menu['name'];
                 $rest_menu['slug']        = $menu['slug'];
                 $rest_menu['count']       = abs($menu['count']);
-                $rest_menu['location']    = array_search($id, get_nav_menu_locations()) ?: null;
-
+                $rest_menu['location']    = array_search($id, $nav_menu_locations) ?: null;
                 $rest_menu['language_code'] = apply_filters( 'wpml_element_language_code', null, [
                 	'element_id' => $menu['term_taxonomy_id'],
                 	'element_type' => 'nav_menu',
